@@ -27,6 +27,10 @@ include_directories(${OPENGL_INCLUDE_DIRS})
 find_package(GLEW REQUIRED)
 include_directories(${GLEW_INCLUDE_DIRS})
 
+# glm
+find_package(glm REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
+
 if (APPLE)
     find_library(COCOA_LIBRARY Cocoa)
     find_library(OpenGL_LIBRARY OpenGL)
@@ -41,7 +45,8 @@ endif (WIN32)
 
 target_link_libraries(
 	ns
-	glfw3
+    glfw
+    glm
 	${OPENGL_LIBRARIES}
 	${GLEW_LIBRARIES}
 	${EXTRA_LIBS}
