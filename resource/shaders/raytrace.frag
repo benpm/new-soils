@@ -1,10 +1,10 @@
-#version 320 core
+#version 320 es
 mediump out vec4 color;
 precision mediump float;
+precision mediump usampler3D;
 
-mediump uniform samplerBuffer voxels;
-const int CHUNK_SIZE = 32;
-
+in vec2 texCoord;
+uniform usampler3D voxels;
 uniform mat4 viewProj;
 /* 
 uint vox_at(vec3 pos) {
@@ -34,5 +34,6 @@ void main() {
     /* float value = ray(
         vec3(gl_FragCoord.x / 8.0, gl_FragCoord.y / 8.0, 0.0), 
         vec3(gl_FragCoord.x / 8.0, gl_FragCoord.y / 8.0, 32.0)) / 64.0; */
-    color = texelFetch(voxels, 0);
+    color = vec4(texture(voxels, vec3(0, 0, 0)).r, 0, 0, 1);
+    // color = vec4(texCoord.xy, 1, 1);
 }

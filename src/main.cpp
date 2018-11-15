@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-#define n_voxels (3 * 1000)
+#define VOXELS (32*32*32)
 
 void safeExit() {
 	glfwTerminate();
@@ -138,6 +138,7 @@ int main(int argc, char const *argv[]) {
 
 	//Setup for OpenGL
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
+	glEnable(GL_TEXTURE_3D);
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
 	//Create screen quad
@@ -156,18 +157,23 @@ int main(int argc, char const *argv[]) {
 	GLuint programID = LoadShaders("../resource/shaders/raytrace.vert", "../resource/shaders/raytrace.frag");
 	glUseProgram(programID);
 
-	//Voxel data into texture buffer
-	float tboData[4] = {1.0, 0.5, 1.0, 1.0};
-	GLuint bufferID;
-	GLuint textureID;
-	GLuint loc = glGetUniformLocation(programID, "voxels");
-	glGenBuffers(1, &bufferID);
-	glBindBuffer(GL_TEXTURE_BUFFER, bufferID);
-	glBufferData(GL_TEXTURE_BUFFER, sizeof(tboData), tboData, GL_STATIC_DRAW);
-	glGenTextures(1, &textureID);
-	glBindBuffer(GL_TEXTURE_BUFFER, 0);
-	//glBindTexture(GL_TEXTURE_BUFFER, textureID);
-	//glTextureBuffer(textureID, GL_R8, bufferID);
+	
+
+	//Voxel Data
+	GLubyte voxelData[VOXELS] = {255};
+
+	//3D texture
+	GLuint voxTex;
+	glGenTextures(1, &voxTex);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, voxTex);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, 32, 32, 32, 0, GL_R8UI, GL_UNSIGNED_BYTE, voxelData);
+	glUniform1i(glGetUniformLocation(programID, "voxels"), 0);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 
 	//View
 	int width, height;
@@ -186,13 +192,10 @@ int main(int argc, char const *argv[]) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glUseProgram(programID);
-		//Buffer texture voxel data
-		//glBufferSubData(GL_TEXTURE_BUFFER, 0, sizeof(voxels), voxels);
+
+		//Voxel 3D texture
 		glActiveTexture(GL_TEXTURE0);
-		//glBindBuffer(GL_TEXTURE_BUFFER, bufferID);
-		glBindTexture(GL_TEXTURE_BUFFER, textureID);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RG32F, bufferID);
-		glUniform1i(loc, 0);
+		glBindTexture(GL_TEXTURE_3D, voxTex);
 
 		//Set uniforms
 		glUniformMatrix4fv(glGetUniformLocation(programID, "viewProj"), 1, GL_FALSE, &viewProj[0][0]);
