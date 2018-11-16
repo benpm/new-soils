@@ -10,7 +10,8 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-#define TEX_SIZE (32*32)
+#define TEX_W 32
+#define TEX_SIZE (TEX_W*TEX_W*TEX_W)
 
 void safeExit() {
 	glfwTerminate();
@@ -140,7 +141,7 @@ int main(int argc, char const *argv[]) {
 	//Setup for OpenGL
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glEnable(GL_TEXTURE_3D);
-	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_3D);
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
 	//Create screen quad
@@ -160,7 +161,7 @@ int main(int argc, char const *argv[]) {
 	glUseProgram(programID);
 
 	//Texture Data
-	GLfloat texData[TEX_SIZE * 3];
+	GLfloat *texData = (GLfloat *)malloc(TEX_SIZE * 3 * sizeof(GLfloat));
 	for (int i = 0; i < TEX_SIZE * 3; i++) {
 		texData[i] = (float)rand() / (float)RAND_MAX;
 	}
@@ -169,12 +170,13 @@ int main(int argc, char const *argv[]) {
 	GLuint tex;
 	glGenTextures(1, &tex);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_FLOAT, texData);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_3D, tex);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, TEX_W, TEX_W, TEX_W, 0, GL_RGB, GL_FLOAT, texData);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 
 	//View
 	int width, height;
@@ -186,6 +188,7 @@ int main(int argc, char const *argv[]) {
 
 	//Handlers
 	glfwSetWindowSizeCallback(window, windowResizeHandler);
+	float t = 0.0;
 
 	//Render loop
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
@@ -196,8 +199,9 @@ int main(int argc, char const *argv[]) {
 
 		//Voxel 3D texture
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex);
+		glBindTexture(GL_TEXTURE_3D, tex);
 		glUniform1i(glGetUniformLocation(programID, "tex"), 0);
+		glUniform1f(glGetUniformLocation(programID, "seconds"), (t += 0.01f));
 
 		//Draw the view quad
 		glEnableClientState(GL_VERTEX_ARRAY);
