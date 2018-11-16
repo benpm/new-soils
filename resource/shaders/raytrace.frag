@@ -8,5 +8,5 @@ uniform sampler3D tex;
 uniform float seconds;
 
 void main() {
-    color = vec4(texture(tex, vec3(texCoord, seconds)).rgb, 1);
+    color = vec4(texture(tex, vec3(texCoord, seconds)).r, 0, 0, 1);
 }

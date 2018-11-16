@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-#define TEX_W 32
+#define TEX_W 512
 #define TEX_SIZE (TEX_W*TEX_W*TEX_W)
 
 void safeExit() {
@@ -141,7 +141,6 @@ int main(int argc, char const *argv[]) {
 	//Setup for OpenGL
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glEnable(GL_TEXTURE_3D);
-	glEnable(GL_TEXTURE_3D);
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
 	//Create screen quad
@@ -161,9 +160,9 @@ int main(int argc, char const *argv[]) {
 	glUseProgram(programID);
 
 	//Texture Data
-	GLfloat *texData = (GLfloat *)malloc(TEX_SIZE * 3 * sizeof(GLfloat));
-	for (int i = 0; i < TEX_SIZE * 3; i++) {
-		texData[i] = (float)rand() / (float)RAND_MAX;
+	GLubyte *texData = (GLubyte *)malloc(TEX_SIZE * sizeof(GLubyte));
+	for (int i = 0; i < TEX_SIZE; i++) {
+		texData[i] = rand() % 255;
 	}
 
 	//Create texture
@@ -171,7 +170,7 @@ int main(int argc, char const *argv[]) {
 	glGenTextures(1, &tex);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, tex);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, TEX_W, TEX_W, TEX_W, 0, GL_RGB, GL_FLOAT, texData);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, TEX_W, TEX_W, TEX_W, 0, GL_RED, GL_UNSIGNED_BYTE, texData);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -211,7 +210,8 @@ int main(int argc, char const *argv[]) {
 
 		GLenum err = glGetError();
 		if (err) {
-			puts((char *)glewGetErrorString(err));
+			printf("OPENGL ERROR: %s\n", (char *)glewGetErrorString(err));
+			break;
 		}
 
 		glfwSwapBuffers(window);
