@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-#define VOXELS (32*32*32)
+#define TEX_SIZE (32*32)
 
 void safeExit() {
 	glfwTerminate();
@@ -135,10 +135,12 @@ int main(int argc, char const *argv[]) {
 	const GLubyte* version = glGetString(GL_VERSION); // version as a string
 	printf("Renderer: %s\n", renderer);
 	printf("OpenGL version supported %s\n", version);
+	printf("Max texture size: %d\n", GL_MAX_TEXTURE_SIZE);
 
 	//Setup for OpenGL
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glEnable(GL_TEXTURE_3D);
+	glEnable(GL_TEXTURE_2D);
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
 	//Create screen quad
@@ -150,30 +152,29 @@ int main(int argc, char const *argv[]) {
 	};
 	static const GLubyte gIndices[] = {
 		0, 1, 2,
-		0, 3, 4
+		0, 4, 3
 	};
 
 	//Compile shaders
 	GLuint programID = LoadShaders("../resource/shaders/raytrace.vert", "../resource/shaders/raytrace.frag");
 	glUseProgram(programID);
 
-	
+	//Texture Data
+	GLfloat texData[TEX_SIZE * 3];
+	for (int i = 0; i < TEX_SIZE * 3; i++) {
+		texData[i] = (float)rand() / (float)RAND_MAX;
+	}
 
-	//Voxel Data
-	GLubyte voxelData[VOXELS] = {255};
-
-	//3D texture
-	GLuint voxTex;
-	glGenTextures(1, &voxTex);
+	//Create texture
+	GLuint tex;
+	glGenTextures(1, &tex);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_3D, voxTex);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, 32, 32, 32, 0, GL_R8UI, GL_UNSIGNED_BYTE, voxelData);
-	glUniform1i(glGetUniformLocation(programID, "voxels"), 0);
-	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_FLOAT, texData);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 
 	//View
 	int width, height;
@@ -195,16 +196,19 @@ int main(int argc, char const *argv[]) {
 
 		//Voxel 3D texture
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_3D, voxTex);
-
-		//Set uniforms
-		glUniformMatrix4fv(glGetUniformLocation(programID, "viewProj"), 1, GL_FALSE, &viewProj[0][0]);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glUniform1i(glGetUniformLocation(programID, "tex"), 0);
 
 		//Draw the view quad
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, 0, gVertices);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, gIndices);
 		glDisableClientState(GL_VERTEX_ARRAY);
+
+		GLenum err = glGetError();
+		if (err) {
+			puts((char *)glewGetErrorString(err));
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
