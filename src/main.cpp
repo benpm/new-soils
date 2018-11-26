@@ -126,7 +126,7 @@ int main(int argc, char const *argv[]) {
 		safeExit();
 	}
 	glfwMakeContextCurrent(window);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//Extension handler GLEW
 	glewExperimental = GL_TRUE;
