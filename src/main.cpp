@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
 
-#define TEX_W 512
+#define TEX_W 256
 #define TEX_SIZE (TEX_W*TEX_W*TEX_W)
 
 void safeExit() {
@@ -126,6 +126,7 @@ int main(int argc, char const *argv[]) {
 		safeExit();
 	}
 	glfwMakeContextCurrent(window);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
 	//Extension handler GLEW
 	glewExperimental = GL_TRUE;
@@ -162,7 +163,7 @@ int main(int argc, char const *argv[]) {
 	//Texture Data
 	GLubyte *texData = (GLubyte *)malloc(TEX_SIZE * sizeof(GLubyte));
 	for (int i = 0; i < TEX_SIZE; i++) {
-		texData[i] = rand() % 255;
+		texData[i] = 255;
 	}
 
 	//Create texture
@@ -173,21 +174,20 @@ int main(int argc, char const *argv[]) {
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, TEX_W, TEX_W, TEX_W, 0, GL_RED, GL_UNSIGNED_BYTE, texData);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 
 	//View
 	int width, height;
 	glfwGetWindowSize(window, &width, &height);
 	glm::vec3 camera(0, 0, 0);
-	glm::mat4 viewMatrix = glm::translate(glm::mat4(), camera);
-	glm::mat4 projMatrix = glm::perspective(glm::radians(75.0), (double)width / (double)height, 0.1, 100.0);
-	glm::mat4 viewProj = projMatrix * viewMatrix;
+	glm::vec3 camRot(0, 0, 1);
 
 	//Handlers
 	glfwSetWindowSizeCallback(window, windowResizeHandler);
 	float t = 0.0;
+	double mx, my;
 
 	//Render loop
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
@@ -196,11 +196,28 @@ int main(int argc, char const *argv[]) {
 
 		glUseProgram(programID);
 
+		//Moving
+		if (glfwGetKey(window, GLFW_KEY_UP))
+			camera += camRot;
+		if (glfwGetKey(window, GLFW_KEY_DOWN))
+			camera -= camRot;
+		if (glfwGetKey(window, GLFW_KEY_LEFT))
+			camera.x -= 0.1;
+		if (glfwGetKey(window, GLFW_KEY_RIGHT))
+			camera.x += 0.1;
+		glfwGetCursorPos(window, &mx, &my);
+		float value = (mx / (double)width) * M_PI;
+		camRot.x = cos(value);
+		camRot.z = sin(value);
+		camRot.y = my / (double)height;
+
 		//Voxel 3D texture
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_3D, tex);
 		glUniform1i(glGetUniformLocation(programID, "tex"), 0);
 		glUniform1f(glGetUniformLocation(programID, "seconds"), (t += 0.01f));
+		glUniform3f(glGetUniformLocation(programID, "camPos"), camera.x, camera.y, camera.z);
+		glUniform3f(glGetUniformLocation(programID, "camRot"), camRot.x, camRot.y, camRot.z);
 
 		//Draw the view quad
 		glEnableClientState(GL_VERTEX_ARRAY);
