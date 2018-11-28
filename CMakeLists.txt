@@ -12,7 +12,8 @@ set(RESOURCE "./resource")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 
 # Executable
-add_executable(ns src/main.cpp)
+file(GLOB INCLUDES include/*)
+add_executable(ns src/main.cpp ${INCLUDES})
 
 # glfw
 find_package(glfw3 REQUIRED)

@@ -9,11 +9,17 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
+#include "../include/imgui.h"
+#include "../include/imgui_impl_glfw.h"
+#include "../include/imgui_impl_opengl3.h"
 
-#define TEX_W 256
+#define TEX_W 32
 #define TEX_SIZE (TEX_W*TEX_W*TEX_W)
 
 void safeExit() {
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
 }
@@ -119,6 +125,7 @@ int main(int argc, char const *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+
 	//Init GLFW window
 	GLFWwindow* window = glfwCreateWindow(640, 480, "New Soils", NULL, NULL);
 	if (!window) {
@@ -131,6 +138,18 @@ int main(int argc, char const *argv[]) {
 	//Extension handler GLEW
 	glewExperimental = GL_TRUE;
 	glewInit();
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+
+    // Setup Platform/Renderer bindings
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 120");
+
+    // Setup Style
+    ImGui::StyleColorsDark();
 
 	//Get and display version information
 	const GLubyte* renderer = glGetString(GL_RENDERER); // get renderer string
@@ -163,7 +182,7 @@ int main(int argc, char const *argv[]) {
 	//Texture Data
 	GLubyte *texData = (GLubyte *)malloc(TEX_SIZE * sizeof(GLubyte));
 	for (int i = 0; i < TEX_SIZE; i++) {
-		texData[i] = 255;
+		texData[i] = rand() % 255;
 	}
 
 	//Create texture
@@ -182,48 +201,67 @@ int main(int argc, char const *argv[]) {
 	int width, height;
 	glfwGetWindowSize(window, &width, &height);
 	glm::vec3 camera(0, 0, 0);
-	glm::vec3 camRot(0, 0, 1);
+	glm::vec3 camRot(0, 0, 0);
+	/* glm::mat4 viewMatrix = glm::translate(glm::mat4(), camera);
+	viewMatrix = glm::rotate(viewMatrix, );
+	glm::mat4 projMatrix = glm::perspective(glm::radians(75.0), (double)width / (double)height, 0.1, 100.0);
+	glm::mat4 viewProj = projMatrix * viewMatrix; */
 
 	//Handlers
 	glfwSetWindowSizeCallback(window, windowResizeHandler);
 	float t = 0.0;
 	double mx, my;
+	glUniform1f(glGetUniformLocation(programID, "imageAspectRatio"), (float)width / (float)height);
+	glUniform2f(glGetUniformLocation(programID, "screenSize"), (float)width, (float)height);
+	glUniform1i(glGetUniformLocation(programID, "volSize"), TEX_W);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, tex);
+	glUniform1i(glGetUniformLocation(programID, "tex"), 0);
+	glEnableClientState(GL_VERTEX_ARRAY);
+
 
 	//Render loop
 	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS
 		&& !glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glUseProgram(programID);
+		
+		ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::Begin("Another Window");
+		ImGui::Text("Hello from another window!");
+		if (ImGui::Button("Close Me"))
+			puts("button");
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		//Moving
-		if (glfwGetKey(window, GLFW_KEY_UP))
-			camera += camRot;
-		if (glfwGetKey(window, GLFW_KEY_DOWN))
-			camera -= camRot;
-		if (glfwGetKey(window, GLFW_KEY_LEFT))
+		if (glfwGetKey(window, GLFW_KEY_W))
+			camera.y -= 0.1;
+		if (glfwGetKey(window, GLFW_KEY_S))
+			camera.y += 0.1;
+		if (glfwGetKey(window, GLFW_KEY_A))
 			camera.x -= 0.1;
-		if (glfwGetKey(window, GLFW_KEY_RIGHT))
+		if (glfwGetKey(window, GLFW_KEY_D))
 			camera.x += 0.1;
+		if (glfwGetKey(window, GLFW_KEY_Q))
+			camera.z -= 0.1;
+		if (glfwGetKey(window, GLFW_KEY_E))
+			camera.z += 0.1;
 		glfwGetCursorPos(window, &mx, &my);
-		float value = (mx / (double)width) * M_PI;
-		camRot.x = cos(value);
-		camRot.z = sin(value);
-		camRot.y = my / (double)height;
+		//camRot.y = (mx / (double)width);
+		camRot.y = mx / 1000.0;
+		camRot.x = my / 1000.0;
 
 		//Voxel 3D texture
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_3D, tex);
-		glUniform1i(glGetUniformLocation(programID, "tex"), 0);
 		glUniform1f(glGetUniformLocation(programID, "seconds"), (t += 0.01f));
 		glUniform3f(glGetUniformLocation(programID, "camPos"), camera.x, camera.y, camera.z);
 		glUniform3f(glGetUniformLocation(programID, "camRot"), camRot.x, camRot.y, camRot.z);
 
 		//Draw the view quad
-		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, 0, gVertices);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, gIndices);
-		glDisableClientState(GL_VERTEX_ARRAY);
 
 		GLenum err = glGetError();
 		if (err) {
@@ -234,6 +272,8 @@ int main(int argc, char const *argv[]) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	printf("%f,%f,%f\n", camRot.x, camRot.y, camRot.z);
 
 	//Success
 	safeExit();
