@@ -1,5 +1,5 @@
 # New Soils
-New Soils is a Minecraft-like with a focus on exploration and dungeon-crawling.
+Voxel raytracing test
 
 ## Dependencies
 - OpenGL
