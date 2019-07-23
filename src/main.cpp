@@ -154,6 +154,7 @@ int main(int argc, char const *argv[]) {
 	//Get and display version information
 	const GLubyte* renderer = glGetString(GL_RENDERER); // get renderer string
 	const GLubyte* version = glGetString(GL_VERSION); // version as a string
+	printf("GLSL version supported: %s\n", (char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
 	printf("Renderer: %s\n", renderer);
 	printf("OpenGL version supported %s\n", version);
 	printf("Max texture size: %d\n", GL_MAX_TEXTURE_SIZE);
